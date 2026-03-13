@@ -1,7 +1,13 @@
 // lib/ingest/types.ts
+export type SourceType =
+  | "RSS"
+  | "ARXIV"
+  | "YOUTUBE"
+  | "GITHUB";
+
 export type NormalizedItem = {
   sourceId?: string;
-  sourceType: "RSS" | "ARXIV";
+  sourceType: SourceType;
   sourceName?: string;
 
   externalId?: string;
