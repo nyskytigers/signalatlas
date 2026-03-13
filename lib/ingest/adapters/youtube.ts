@@ -28,7 +28,7 @@ export async function fetchYoutubeItems(
   return (feed.items ?? [])
     .map((item: any) => ({
       sourceId,
-      sourceType: "YOUTUBE",
+      sourceType: "YOUTUBE" as const,
       sourceName,
       externalId: item.id || item.guid || item.link || undefined,
       url: item.link || "",
@@ -37,7 +37,7 @@ export async function fetchYoutubeItems(
       contentText: item.content || item.contentSnippet || "",
       publishedAt: item.isoDate ? new Date(item.isoDate) : undefined,
       authors: item.creator ? [item.creator] : item.author ? [item.author] : [],
-      tags: ["video","youtube"],
+      tags: ["video", "youtube"],
       raw: item,
     }))
     .filter((item) => item.url && item.title);

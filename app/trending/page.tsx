@@ -5,6 +5,16 @@ import { getTrendingItems } from "@/lib/queries/trending";
 export default async function TrendingPage() {
   const items = await getTrendingItems();
 
+  const feedItems = items
+    .filter((item): item is NonNullable<typeof item> => item != null)
+    .map((item) => ({
+      ...item,
+      source: {
+        name: item.source?.name ?? "Unknown source",
+        type: item.source?.type ?? "UNKNOWN",
+      },
+    }));
+
   return (
     <main className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-6xl px-4 py-10">
@@ -20,7 +30,7 @@ export default async function TrendingPage() {
           </p>
         </header>
 
-        <FeedList items={items} />
+        <FeedList items={feedItems} />
       </div>
     </main>
   );

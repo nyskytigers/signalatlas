@@ -1,4 +1,4 @@
-//app/search/page.tsx
+// app/search/page.tsx
 import FeedList from "@/components/feed/FeedList";
 import { searchItems } from "@/lib/queries/search";
 
@@ -12,6 +12,16 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
   const q = params.q?.trim() || "";
   const items = q ? await searchItems(q) : [];
+
+  const feedItems = items
+    .filter((item): item is NonNullable<typeof item> => item != null)
+    .map((item) => ({
+      ...item,
+      source: {
+        name: item.source?.name ?? "Unknown source",
+        type: item.source?.type ?? "UNKNOWN",
+      },
+    }));
 
   return (
     <main className="min-h-screen bg-zinc-50">
@@ -43,7 +53,9 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
         {q ? (
           <p className="mb-4 text-sm text-zinc-500">
-            Results for <span className="font-medium text-zinc-900">{q}</span>: {items.length}
+            Results for{" "}
+            <span className="font-medium text-zinc-900">{q}</span>:{" "}
+            {feedItems.length}
           </p>
         ) : (
           <p className="mb-4 text-sm text-zinc-500">
@@ -51,7 +63,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
           </p>
         )}
 
-        <FeedList items={items} />
+        <FeedList items={feedItems} />
       </div>
     </main>
   );

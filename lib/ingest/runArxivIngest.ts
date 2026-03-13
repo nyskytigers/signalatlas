@@ -8,6 +8,14 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getArxivSourceUrl(sourceName?: string) {
+  if (sourceName === "arXiv XR/CV") {
+    return "https://arxiv.org/search/?query=virtual+reality+augmented+reality+xr+spatial+computing&searchtype=all&source=header";
+  }
+
+  return "https://arxiv.org/list/cs.RO/recent";
+}
+
 export async function runArxivIngest() {
   let inserted = 0;
   let skipped = 0;
@@ -16,7 +24,11 @@ export async function runArxivIngest() {
   try {
     const querySets = [
       { query: "cat:cs.RO", sourceName: "arXiv cs.RO" },
-      { query: 'cat:cs.CV AND ("virtual reality" OR "augmented reality" OR xr OR "spatial computing")', sourceName: "arXiv XR/CV" },
+      {
+        query:
+          'cat:cs.CV AND ("virtual reality" OR "augmented reality" OR xr OR "spatial computing")',
+        sourceName: "arXiv XR/CV",
+      },
     ];
 
     const allEntries = [];
@@ -42,10 +54,10 @@ export async function runArxivIngest() {
       });
 
       console.log("arxiv candidate:", {
-      title: e.title,
-      authors: e.authors,
-      sourceName: e.sourceName,
-      match,
+        title: e.title,
+        authors: e.authors,
+        sourceName: e.sourceName,
+        match,
       });
 
       if (!match) {
@@ -59,8 +71,8 @@ export async function runArxivIngest() {
       });
 
       console.log("matched lab lookup:", {
-      wantedSlug: match.slug,
-      found: !!lab,
+        wantedSlug: match.slug,
+        found: !!lab,
       });
 
       if (!lab) {
@@ -68,11 +80,13 @@ export async function runArxivIngest() {
         continue;
       }
 
+      const sourceUrl = getArxivSourceUrl(e.sourceName);
+
       const source = await prisma.source.upsert({
         where: {
           labId_url: {
             labId: lab.id,
-            url: e.feedUrl ?? "https://rss.arxiv.org/rss/cs.RO",
+            url: sourceUrl,
           },
         },
         update: {
@@ -87,7 +101,7 @@ export async function runArxivIngest() {
           labId: lab.id,
           type: "ARXIV",
           name: e.sourceName ?? "arXiv",
-          url: e.feedUrl ?? "https://rss.arxiv.org/rss/cs.RO",
+          url: sourceUrl,
           isActive: true,
           lastCheckedAt: new Date(),
           lastOkAt: new Date(),
@@ -120,7 +134,7 @@ export async function runArxivIngest() {
             sourceName: e.sourceName,
             authors: e.authors ?? [],
             tags: e.tags ?? [],
-            rawJson: e.rawJson ?? null,
+            rawJson: e.raw ?? undefined,
           },
         });
 

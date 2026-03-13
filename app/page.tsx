@@ -24,6 +24,14 @@ export default async function HomePage({ searchParams }: PageProps) {
     getAllLabs(),
   ]);
 
+  const feedItems = items.map((item) => ({
+    ...item,
+    source: {
+      name: item.source?.name ?? "Unknown source",
+      type: item.source?.type ?? "UNKNOWN",
+    },
+  }));
+
   return (
     <main className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-6xl px-4 py-10">
@@ -54,11 +62,15 @@ export default async function HomePage({ searchParams }: PageProps) {
 
         <section className="mb-4">
           <p className="text-sm text-zinc-500">
-            Showing <span className="font-semibold text-zinc-900">{items.length}</span> ranked items
+            Showing{" "}
+            <span className="font-semibold text-zinc-900">
+              {feedItems.length}
+            </span>{" "}
+            ranked items
           </p>
         </section>
 
-        <FeedList items={items} />
+        <FeedList items={feedItems} />
       </div>
     </main>
   );

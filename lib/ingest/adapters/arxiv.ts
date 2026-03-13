@@ -44,7 +44,7 @@ export async function fetchArxivItems(
       const authors = creator ? [creator] : [];
 
       return {
-        sourceType: "ARXIV",
+        sourceType: "ARXIV" as const,
         sourceName,
         externalId: item.id || item.guid || link || undefined,
         url: link,
