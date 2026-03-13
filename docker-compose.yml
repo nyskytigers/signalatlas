@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: signalatlas_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: signalatlas
+    ports:
+      - "5432:5432"
+    volumes:
+      - signalatlas_pgdata:/var/lib/postgresql/data
+
+volumes:
+  signalatlas_pgdata:

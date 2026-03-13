@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum LabDomain {
+  MARINE
+  XR
+  BOTH
+}
+
+enum SourceType {
+  WEBSITE
+  RSS
+  ARXIV
+  GOOGLE_SCHOLAR
+  GITHUB
+  YOUTUBE
+  X
+  LINKEDIN
+  BLUESKY
+  OTHER
+}
+
+enum IngestStatus {
+  NEW
+  FETCHED
+  PARSED
+  FAILED
+  IGNORED
+}
+
+enum RunType {
+  RSS
+  ARXIV
+  ALL
+}
+
+enum RunStatus {
+  RUNNING
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+model Lab {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  org         String?
+  country     String?
+  domain      LabDomain @default(BOTH)
+  homepageUrl String?
+  description String?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sources Source[]
+  items   Item[]
+
+  @@index([domain])
+  @@index([isActive])
+}
+
+model Source {
+  id    String @id @default(cuid())
+  labId String
+  lab   Lab    @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  type     SourceType
+  name     String?
+  url      String
+  isActive Boolean    @default(true)
+
+  watchMode         String? // "cheerio" | "playwright"
+  watchSelector     String? // CSS selector for article cards / links
+  itemLinkSelector  String? // CSS selector relative to card
+  itemTitleSelector String?
+  itemDateSelector  String?
+
+  lastCheckedAt DateTime?
+  lastOkAt      DateTime?
+  lastErrorAt   DateTime?
+  lastError     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items  Item[]
+  events IngestEvent[]
+
+  @@unique([labId, url])
+  @@index([labId])
+  @@index([type])
+  @@index([isActive])
+}
+
+model Item {
+  id    String @id @default(cuid())
+  labId String
+  lab   Lab    @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  sourceId String?
+  source   Source? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  url        String
+  externalId String?
+  checksum   String?
+
+  title       String
+  summary     String?
+  contentText String?
+
+  publishedAt DateTime?
+  fetchedAt   DateTime?
+  status      IngestStatus @default(NEW)
+
+  score   Float @default(0)
+  novelty Float @default(0)
+  impact  Float @default(0)
+
+  sourceName String?
+  authors    String[] @default([])
+  tags       String[] @default([])
+  rawJson    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceId, externalId])
+  @@unique([url])
+  @@index([labId, publishedAt])
+  @@index([score])
+  @@index([status])
+  @@index([tags])
+}
+
+model IngestRun {
+  id     String    @id @default(cuid())
+  type   RunType
+  status RunStatus @default(RUNNING)
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  sourcesCount Int @default(0)
+  fetchedCount Int @default(0)
+  createdCount Int @default(0)
+  updatedCount Int @default(0)
+  dedupedCount Int @default(0)
+  failedCount  Int @default(0)
+
+  notes String?
+  error String?
+
+  events IngestEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type, startedAt])
+  @@index([status])
+}
+
+model IngestEvent {
+  id    String    @id @default(cuid())
+  runId String
+  run   IngestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  sourceId String?
+  source   Source? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  level      String
+  message    String
+  detailJson Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([runId])
+  @@index([sourceId])
+}
