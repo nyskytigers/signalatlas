@@ -19,6 +19,14 @@ export default async function LabDetailPage({ params }: PageProps) {
 
   if (!lab) notFound();
 
+  const feedItems = items.map((item) => ({
+    ...item,
+    source: {
+      name: item.source?.name ?? "Unknown source",
+      type: item.source?.type ?? "UNKNOWN",
+    },
+  }));
+
   return (
     <main className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-6xl px-4 py-10">
@@ -75,7 +83,7 @@ export default async function LabDetailPage({ params }: PageProps) {
           </p>
         </section>
 
-        <FeedList items={items} />
+        <FeedList items={feedItems} />
       </div>
     </main>
   );
