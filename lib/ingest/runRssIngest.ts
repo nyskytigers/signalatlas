@@ -103,13 +103,13 @@ export async function runRssIngest(
                 publishedAt: it.publishedAt,
                 fetchedAt: new Date(),
                 status: "FETCHED",
-                score: typeof s === "number" ? s : s.score,
-                novelty: typeof s === "number" ? 0 : s.novelty ?? 0,
-                impact: typeof s === "number" ? 0 : s.impact ?? 0,
+                score: s,
+                novelty: 0,
+                impact: 0,
                 tags,
                 sourceName: it.sourceName,
                 authors: it.authors ?? [],
-                rawJson: it.raw ?? null,
+                rawJson: it.raw ?? undefined,
               },
             });
 
@@ -121,12 +121,12 @@ export async function runRssIngest(
             failedCount++;
             errors++;
             skipped++;
-            
+
             console.error("RSS item create failed:", {
-            title: it.title,
-            url: it.url,
-            error: String(err?.message ?? err),
-          });
+              title: it.title,
+              url: it.url,
+              error: String(err?.message ?? err),
+            });
 
             await prisma.ingestEvent.create({
               data: {
@@ -146,7 +146,11 @@ export async function runRssIngest(
 
         await prisma.source.update({
           where: { id: src.id },
-          data: { lastCheckedAt: new Date(), lastOkAt: new Date(), lastError: null },
+          data: {
+            lastCheckedAt: new Date(),
+            lastOkAt: new Date(),
+            lastError: null,
+          },
         });
       } catch (err: any) {
         failedCount++;
