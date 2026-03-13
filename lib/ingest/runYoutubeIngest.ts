@@ -77,13 +77,13 @@ export async function runYoutubeIngest() {
               publishedAt: it.publishedAt,
               fetchedAt: new Date(),
               status: "FETCHED",
-              score: typeof s === "number" ? s : s.score,
-              novelty: typeof s === "number" ? 0 : s.novelty ?? 0,
-              impact: typeof s === "number" ? 0 : s.impact ?? 0,
+              score: s,
+              novelty: 0,
+              impact: 0,
               tags,
               sourceName: it.sourceName,
               authors: it.authors ?? [],
-              rawJson: it.raw as any,
+              rawJson: it.raw ?? undefined,
             },
           });
 

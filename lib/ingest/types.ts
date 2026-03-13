@@ -3,7 +3,8 @@ export type SourceType =
   | "RSS"
   | "ARXIV"
   | "YOUTUBE"
-  | "GITHUB";
+  | "GITHUB"
+  | "WEBSITE";
 
 export type NormalizedItem = {
   sourceId?: string;

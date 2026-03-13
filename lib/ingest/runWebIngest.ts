@@ -28,7 +28,7 @@ export async function runWebIngest() {
 
     for (const src of sources) {
       try {
-        const items =
+        const rawItems =
           src.watchMode === "playwright"
             ? await fetchWebpageItemsPlaywright({
                 url: src.url,
@@ -42,6 +42,10 @@ export async function runWebIngest() {
                 sourceName: src.name ?? "Website",
                 watchSelector: src.watchSelector,
               });
+
+        const items = rawItems.filter(
+          (it): it is NonNullable<typeof it> => it != null
+        );
 
         fetchedCount += items.length;
 
