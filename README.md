@@ -20,3 +20,6 @@ Vercel
 2. set DATABASE_URL
 3. prisma migrate dev
 4. npm run dev
+
+![SignalAtlas homepage feed](https://github.com/nyskytigers/signalatlas/blob/main/Homepage%20feed.png)
+![SignalAtlas admin dashboard](https://github.com/nyskytigers/signalatlas/blob/main/Admin%20dashboard.png)
