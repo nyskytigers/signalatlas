@@ -22,4 +22,4 @@ Vercel
 4. npm run dev
 
 ![SignalAtlas homepage feed](https://github.com/nyskytigers/signalatlas/blob/main/Homepage%20feed.png)
-![SignalAtlas admin dashboard](https://github.com/nyskytigers/signalatlas/blob/main/Admin%20dashboard.png)
+![SignalAtlas admin dashboard](https://github.com/nyskytigers/signalatlas/blob/main/admin%20dashboard.png)
