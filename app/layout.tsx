@@ -1,4 +1,5 @@
 import "./globals.css";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata = {
   title: "SignalAtlas",
@@ -27,6 +28,7 @@ export default function RootLayout({
                 Labs
               </a>
             </nav>
+            <ThemeToggle />
           </div>
         </header>
 
