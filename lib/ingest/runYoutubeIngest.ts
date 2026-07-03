@@ -5,6 +5,10 @@ import { isDuplicate } from "@/lib/ingest/dedupe";
 import { tagItem } from "@/lib/tagging/tagItem";
 import { scoreItem } from "@/lib/scoring/scoreItem";
 
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : String(err);
+}
+
 export async function runYoutubeIngest() {
   const run = await prisma.ingestRun.create({
     data: {
@@ -98,7 +102,7 @@ export async function runYoutubeIngest() {
             lastError: null,
           },
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("YouTube ingest failed", {
           sourceId: src.id,
           url: src.url,
@@ -113,7 +117,7 @@ export async function runYoutubeIngest() {
             sourceId: src.id,
             level: "ERROR",
             message: "YouTube source failed",
-            detailJson: { error: String(err?.message ?? err) },
+            detailJson: { error: getErrorMessage(err) },
           },
         });
 
@@ -122,7 +126,7 @@ export async function runYoutubeIngest() {
           data: {
             lastCheckedAt: new Date(),
             lastErrorAt: new Date(),
-            lastError: String(err?.message ?? err),
+            lastError: getErrorMessage(err),
           },
         });
       }
@@ -146,7 +150,7 @@ export async function runYoutubeIngest() {
     });
 
     return result;
-  } catch (err: any) {
+  } catch (err: unknown) {
     await prisma.ingestRun.update({
       where: { id: run.id },
       data: {
@@ -156,7 +160,7 @@ export async function runYoutubeIngest() {
         createdCount,
         dedupedCount,
         failedCount: failedCount + 1,
-        error: String(err?.message ?? err),
+        error: getErrorMessage(err),
       },
     });
 

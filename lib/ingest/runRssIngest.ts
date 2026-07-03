@@ -5,6 +5,10 @@ import { isDuplicate } from "./dedupe";
 import { tagItem } from "@/lib/tagging/tagItem";
 import { scoreItem } from "@/lib/scoring/scoreItem";
 
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : String(err);
+}
+
 export async function runRssIngest(
   limitSources = 5
 ): Promise<{
@@ -115,7 +119,7 @@ export async function runRssIngest(
 
             createdCount++;
             inserted++;
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error("RSS item create failed:", err);
 
             failedCount++;
@@ -125,7 +129,7 @@ export async function runRssIngest(
             console.error("RSS item create failed:", {
               title: it.title,
               url: it.url,
-              error: String(err?.message ?? err),
+              error: getErrorMessage(err),
             });
 
             await prisma.ingestEvent.create({
@@ -137,7 +141,7 @@ export async function runRssIngest(
                 detailJson: {
                   title: it.title,
                   url: it.url,
-                  error: String(err?.message ?? err),
+                  error: getErrorMessage(err),
                 },
               },
             });
@@ -152,7 +156,7 @@ export async function runRssIngest(
             lastError: null,
           },
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         failedCount++;
         errors++;
 
@@ -162,7 +166,7 @@ export async function runRssIngest(
             sourceId: src.id,
             level: "ERROR",
             message: "RSS source failed",
-            detailJson: { error: String(err?.message ?? err) },
+            detailJson: { error: getErrorMessage(err) },
           },
         });
 
@@ -171,7 +175,7 @@ export async function runRssIngest(
           data: {
             lastCheckedAt: new Date(),
             lastErrorAt: new Date(),
-            lastError: String(err?.message ?? err),
+            lastError: getErrorMessage(err),
           },
         });
       }
@@ -202,7 +206,7 @@ export async function runRssIngest(
       tried: sources.length,
       results,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     await prisma.ingestRun.update({
       where: { id: run.id },
       data: {
@@ -212,7 +216,7 @@ export async function runRssIngest(
         createdCount,
         dedupedCount,
         failedCount: failedCount + 1,
-        error: String(err?.message ?? err),
+        error: getErrorMessage(err),
       },
     });
 

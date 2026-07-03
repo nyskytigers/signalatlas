@@ -3,8 +3,13 @@ import { prisma } from "@/db/prisma";
 import { isDuplicate } from "@/lib/ingest/dedupe";
 import { tagItem } from "@/lib/tagging/tagItem";
 import { scoreItem } from "@/lib/scoring/scoreItem";
+import { Prisma } from "@prisma/client";
 import { fetchWebpageItemsCheerio } from "@/lib/ingest/adapters/webpage.cheerio";
 import { fetchWebpageItemsPlaywright } from "@/lib/ingest/adapters/webpage.playwright";
+
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : String(err);
+}
 
 export async function runWebIngest() {
   const run = await prisma.ingestRun.create({
@@ -83,7 +88,7 @@ export async function runWebIngest() {
               tags,
               sourceName: it.sourceName,
               authors: it.authors ?? [],
-              rawJson: it.raw as any,
+              rawJson: it.raw as Prisma.InputJsonValue,
             },
           });
 
@@ -94,7 +99,7 @@ export async function runWebIngest() {
           where: { id: src.id },
           data: { lastCheckedAt: new Date(), lastOkAt: new Date(), lastError: null },
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         failedCount++;
 
         await prisma.ingestEvent.create({
@@ -103,7 +108,7 @@ export async function runWebIngest() {
             sourceId: src.id,
             level: "ERROR",
             message: "Website source failed",
-            detailJson: { error: String(err?.message ?? err) },
+            detailJson: { error: getErrorMessage(err) },
           },
         });
 
@@ -112,7 +117,7 @@ export async function runWebIngest() {
           data: {
             lastCheckedAt: new Date(),
             lastErrorAt: new Date(),
-            lastError: String(err?.message ?? err),
+            lastError: getErrorMessage(err),
           },
         });
       }
@@ -130,7 +135,7 @@ export async function runWebIngest() {
         failedCount,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     await prisma.ingestRun.update({
       where: { id: run.id },
       data: {
@@ -140,7 +145,7 @@ export async function runWebIngest() {
         createdCount,
         dedupedCount,
         failedCount: failedCount + 1,
-        error: String(err?.message ?? err),
+        error: getErrorMessage(err),
       },
     });
 

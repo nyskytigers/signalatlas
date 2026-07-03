@@ -4,6 +4,11 @@ import { fetchGithubItems } from "@/lib/ingest/adapters/github";
 import { isDuplicate } from "@/lib/ingest/dedupe";
 import { tagItem } from "@/lib/tagging/tagItem";
 import { scoreItem } from "@/lib/scoring/scoreItem";
+import { Prisma } from "@prisma/client";
+
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : String(err);
+}
 
 export async function runGithubIngest() {
   const run = await prisma.ingestRun.create({
@@ -62,7 +67,8 @@ export async function runGithubIngest() {
             continue;
           }
 
-          const rawRepo = it.raw as any;
+          const rawRepo = it.raw as { stargazers_count?: unknown;
+          };
 
           const s = scoreItem({
             title: it.title,
@@ -105,12 +111,12 @@ export async function runGithubIngest() {
                 tags,
                 sourceName: it.sourceName,
                 authors: it.authors ?? [],
-                rawJson: it.raw as any,
+                rawJson: it.raw as Prisma.InputJsonValue,
               },
             });
 
             createdCount++;
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error("GitHub item create failed:", err);
             failedCount++;
 
@@ -123,7 +129,7 @@ export async function runGithubIngest() {
                 detailJson: {
                   title: it.title,
                   url: it.url,
-                  error: String(err?.message ?? err),
+                  error: getErrorMessage(err),
                 },
               },
             });
@@ -138,7 +144,7 @@ export async function runGithubIngest() {
             lastError: null,
           },
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         failedCount++;
 
         await prisma.ingestEvent.create({
@@ -147,7 +153,7 @@ export async function runGithubIngest() {
             sourceId: src.id,
             level: "ERROR",
             message: "GitHub source failed",
-            detailJson: { error: String(err?.message ?? err) },
+            detailJson: { error: getErrorMessage(err) },
           },
         });
 
@@ -156,7 +162,7 @@ export async function runGithubIngest() {
           data: {
             lastCheckedAt: new Date(),
             lastErrorAt: new Date(),
-            lastError: String(err?.message ?? err),
+            lastError: getErrorMessage(err),
           },
         });
       }
@@ -180,7 +186,7 @@ export async function runGithubIngest() {
     });
 
     return result;
-  } catch (err: any) {
+  } catch (err: unknown) {
     await prisma.ingestRun.update({
       where: { id: run.id },
       data: {
@@ -190,7 +196,7 @@ export async function runGithubIngest() {
         createdCount,
         dedupedCount,
         failedCount: failedCount + 1,
-        error: String(err?.message ?? err),
+        error: getErrorMessage(err),
       },
     });
 

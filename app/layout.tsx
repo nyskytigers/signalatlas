@@ -1,4 +1,5 @@
 import "./globals.css";
+import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata = {
@@ -16,17 +17,17 @@ export default function RootLayout({
       <body className="bg-zinc-50 text-zinc-950">
         <header className="border-b border-zinc-200 bg-white">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-            <a href="/" className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
+            <Link href="/" className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
               SignalAtlas
-            </a>
+            </Link>
 
             <nav className="flex items-center gap-4 text-sm text-zinc-600">
-              <a href="/" className="hover:text-zinc-950">
+              <Link href="/" className="hover:text-zinc-950">
                 Feed
-              </a>
-              <a href="/labs" className="hover:text-zinc-950">
+              </Link>
+              <Link href="/labs" className="hover:text-zinc-950">
                 Labs
-              </a>
+              </Link>
             </nav>
             <ThemeToggle />
           </div>

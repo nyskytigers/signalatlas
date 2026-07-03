@@ -1,4 +1,6 @@
 // components/feed/FeedFilters.tsx
+import Link from "next/link";
+
 type FeedFiltersProps = {
   currentType?: string;
   currentTime?: string;
@@ -92,12 +94,12 @@ export default function FeedFilters({
           Apply
         </button>
 
-        <a
+        <Link
           href="/"
           className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
         >
           Reset
-        </a>
+        </Link>
       </div>
     </form>
   );

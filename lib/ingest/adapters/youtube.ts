@@ -16,6 +16,18 @@ type YoutubeNormalizedItem = {
   raw?: unknown;
 };
 
+type YouTubeFeedItem = {
+  id?: string;
+  guid?: string;
+  link?: string;
+  title?: string;
+  contentSnippet?: string;
+  content?: string;
+  isoDate?: string;
+  creator?: string;
+  author?: string;
+};
+
 const parser = new Parser();
 
 export async function fetchYoutubeItems(
@@ -26,19 +38,23 @@ export async function fetchYoutubeItems(
   const feed = await parser.parseURL(feedUrl);
 
   return (feed.items ?? [])
-    .map((item: any) => ({
-      sourceId,
-      sourceType: "YOUTUBE" as const,
-      sourceName,
-      externalId: item.id || item.guid || item.link || undefined,
-      url: item.link || "",
-      title: item.title?.trim() || "Untitled video",
-      summary: item.contentSnippet || item.content || "",
-      contentText: item.content || item.contentSnippet || "",
-      publishedAt: item.isoDate ? new Date(item.isoDate) : undefined,
-      authors: item.creator ? [item.creator] : item.author ? [item.author] : [],
-      tags: ["video", "youtube"],
-      raw: item,
-    }))
+    .map((item: unknown) => {
+      const youtubeItem = item as YouTubeFeedItem;
+
+      return {
+        sourceId,
+        sourceType: "YOUTUBE" as const,
+        sourceName,
+        externalId: youtubeItem.id || youtubeItem.guid || youtubeItem.link || undefined,
+        url: youtubeItem.link || "",
+        title: youtubeItem.title?.trim() || "Untitled video",
+        summary: youtubeItem.contentSnippet || youtubeItem.content || "",
+        contentText: youtubeItem.content || youtubeItem.contentSnippet || "",
+        publishedAt: youtubeItem.isoDate ? new Date(youtubeItem.isoDate) : undefined,
+        authors: youtubeItem.creator ? [youtubeItem.creator] : youtubeItem.author ? [youtubeItem.author] : [],
+        tags: ["video", "youtube"],
+        raw: youtubeItem,
+      };
+    })
     .filter((item) => item.url && item.title);
 }

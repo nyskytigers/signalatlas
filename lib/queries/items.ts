@@ -1,4 +1,6 @@
 // lib/queries/items.ts
+// lib/queries/items.ts
+import { Prisma, SourceType } from "@prisma/client";
 import { prisma } from "@/db/prisma";
 
 export type FeedSearchParams = {
@@ -7,11 +9,16 @@ export type FeedSearchParams = {
   lab?: string;
 };
 
+const sourceTypes = Object.values(SourceType);
+
+function isSourceType(value?: string): value is SourceType {
+  return !!value && sourceTypes.includes(value as SourceType);
+}
+
 function getTimeWindowDate(time?: string): Date | undefined {
   if (!time || time === "all") return undefined;
 
-  const now = new Date();
-  const d = new Date(now);
+  const d = new Date();
 
   if (time === "24h") {
     d.setHours(d.getHours() - 24);
@@ -34,13 +41,21 @@ function getTimeWindowDate(time?: string): Date | undefined {
 export async function getHomepageItems(params: FeedSearchParams) {
   const afterDate = getTimeWindowDate(params.time);
 
-  return prisma.item.findMany({
+  const query = Prisma.validator<Prisma.ItemFindManyArgs>()({
     where: {
-      ...(params.type && params.type !== "all"
-        ? { source: { type: params.type as any } }
+      ...(isSourceType(params.type)
+        ? {
+            source: {
+              type: params.type,
+            },
+          }
         : {}),
       ...(params.lab && params.lab !== "all"
-        ? { lab: { slug: params.lab } }
+        ? {
+            lab: {
+              slug: params.lab,
+            },
+          }
         : {}),
       ...(afterDate
         ? {
@@ -62,4 +77,6 @@ export async function getHomepageItems(params: FeedSearchParams) {
       source: true,
     },
   });
+
+  return prisma.item.findMany(query);
 }

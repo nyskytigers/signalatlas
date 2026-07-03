@@ -8,6 +8,15 @@ export type FeedEntry = {
   summary?: string;
 };
 
+type ParsedFeedItem = {
+  title?: string;
+  link?: string;
+  guid?: string;
+  pubdate?: string | Date;
+  summary?: string;
+  description?: string;
+};
+
 function cleanText(s?: string | null) {
   if (!s) return undefined;
   return s
@@ -18,19 +27,19 @@ function cleanText(s?: string | null) {
 }
 
 export async function fetchFeed(url: string): Promise<FeedEntry[]> {
-  const items = await FeedParser.parse(url);
+  const items = (await FeedParser.parse(url)) as ParsedFeedItem[];
 
-  return items
-    .map((it: any) => {
-      const link = it.link || it.guid;
-      if (!link) return null;
+return items.flatMap((it): FeedEntry[] => {
+  const link = it.link || it.guid;
+  if (!link) return [];
 
-      return {
-        title: (it.title || "").trim(),
-        url: String(link).trim(),
-        publishedAt: it.pubdate ? new Date(it.pubdate) : undefined,
-        summary: cleanText(it.summary || it.description),
-      } as FeedEntry;
-    })
-    .filter(Boolean) as FeedEntry[];
+  return [
+    {
+      title: (it.title || "").trim(),
+      url: String(link).trim(),
+      publishedAt: it.pubdate ? new Date(it.pubdate) : undefined,
+      summary: cleanText(it.summary || it.description),
+    },
+  ];
+});
 }

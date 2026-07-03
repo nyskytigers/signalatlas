@@ -4,6 +4,20 @@ import { NormalizedItem } from "../types";
 
 const parser = new Parser();
 
+type ArxivFeedItem = {
+  title?: string;
+  link?: string;
+  links?: Array<{
+    rel?: string;
+    href?: string;
+  }>;
+  creator?: string;
+  "dc:creator"?: string;
+  contentSnippet?: string;
+  content?: string;
+  isoDate?: string;
+};
+
 function buildArxivQuery(query: string, start = 0, maxResults = 20) {
   const encoded = encodeURIComponent(query);
   return `https://export.arxiv.org/api/query?search_query=${encoded}&start=${start}&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
@@ -36,11 +50,14 @@ export async function fetchArxivItems(
 
   return (feed.items ?? [])
     .map((item) => {
-      const link =
-        item.link ||
-        ((item as any).links?.find((l: any) => l.rel === "alternate")?.href ?? "");
+      const arxivItem = item as ArxivFeedItem;
 
-      const creator = (item as any).creator ?? (item as any)["dc:creator"];
+      const link =
+        arxivItem.link ||
+        arxivItem.links?.find((l) => l.rel === "alternate")?.href ||
+        "";
+
+      const creator = arxivItem.creator ?? arxivItem["dc:creator"];
       const authors = creator ? [creator] : [];
 
       return {
