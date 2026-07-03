@@ -22,23 +22,17 @@ export default async function TopicPage({ params }: PageProps) {
       },
     }));
 
-  return (
-    <main className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
-            Topic
-          </p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-zinc-950">
-            #{tag}
-          </h1>
-          <p className="mt-3 text-base text-zinc-600">
-            Ranked items tagged with {tag}.
+    return (
+      <main>
+        <header className="feed-header">
+          <h1>#{tag}</h1>
+
+          <p>
+            Ranked items tagged with &quot;{tag}&quot;.
           </p>
         </header>
 
         <FeedList items={feedItems} />
-      </div>
-    </main>
-  );
+      </main>
+    );
 }
