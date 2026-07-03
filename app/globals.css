@@ -1,4 +1,4 @@
-// globals.css
+/* globals.css */
 @import "tailwindcss";
 *,
 *::before,
@@ -251,4 +251,15 @@ main {
   color: var(--muted);
   padding: 0 0.35rem;
   font-size: 0.78rem;
+}
+
+input,
+select {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--line);
+}
+
+input::placeholder {
+  color: var(--muted);
 }

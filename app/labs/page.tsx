@@ -8,20 +8,20 @@ export default async function LabsPage() {
   return (
     <main className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
-            Labs
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-zinc-950">
-            Research labs tracked by SignalAtlas
-          </h1>
-        </header>
+       <header className="feed-header">
+        <h1>Research Labs</h1>
+        <p>
+          Labs currently tracked by SignalAtlas.
+        </p>
+      </header>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {labs.map((lab) => (
-            <LabCard key={lab.id} lab={lab} />
-          ))}
-        </div>
+        <section className="utility-section">
+          <div className="utility-list">
+            {labs.map((lab) => (
+              <LabCard key={lab.id} lab={lab} />
+            ))}
+          </div>
+        </section>
       </div>
     </main>
   );
