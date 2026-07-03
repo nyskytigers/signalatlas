@@ -1,6 +1,7 @@
 import "./globals.css";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import UtilityHeader from "@/components/layout/UtilityHeader";
 
 export const metadata = {
   title: "SignalAtlas",
@@ -32,7 +33,7 @@ export default function RootLayout({
             <ThemeToggle />
           </div>
         </header>
-
+        <UtilityHeader />
         {children}
       </body>
     </html>
