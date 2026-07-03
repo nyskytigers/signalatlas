@@ -272,3 +272,11 @@ input::placeholder {
 .feed-header p {
   max-width: 70ch;
 }
+
+.utility-table th {
+  width: 12rem;
+}
+
+.feed-meta + .feed-meta {
+  margin-top: 0.15rem;
+}
