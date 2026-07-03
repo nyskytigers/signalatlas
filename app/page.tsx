@@ -33,45 +33,32 @@ export default async function HomePage({ searchParams }: PageProps) {
   }));
 
   return (
-    <main className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <header className="mb-8">
-          {/* <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
-            SignalAtlas
-          </p> */}
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-zinc-950">
-            Ranked research signals from XR and marine robotics labs
-          </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-zinc-600">
-            Track what leading labs are publishing, announcing, and building
-            without checking fifty tabs like a caffeinated raccoon.
-          </p>
-        </header>
+    <section className="feed-shell">
+      <header className="feed-header">
+        <h1>SignalAtlas</h1>
+        <p>
+          Ranked research signals from XR, marine robotics, HCI, and digital
+          twin labs.
+        </p>
+      </header>
 
-        <div className="mb-6">
-          <FeedFilters
-            currentType={params.type}
-            currentTime={params.time ?? "7d"}
-            currentLab={params.lab}
-            labs={labs.map((lab) => ({
-              slug: lab.slug,
-              name: lab.name,
-            }))}
-          />
-        </div>
+      <FeedFilters
+        currentType={params.type}
+        currentTime={params.time ?? "7d"}
+        currentLab={params.lab}
+        labs={labs.map((lab) => ({
+          slug: lab.slug,
+          name: lab.name,
+        }))}
+      />
 
-        <section className="mb-4">
-          <p className="text-sm text-zinc-500">
-            Showing{" "}
-            <span className="font-semibold text-zinc-900">
-              {feedItems.length}
-            </span>{" "}
-            ranked items
-          </p>
-        </section>
+      <section className="utility-section">
+        <p className="utility-muted">
+          Showing {feedItems.length} ranked items
+        </p>
+      </section>
 
-        <FeedList items={feedItems} />
-      </div>
-    </main>
+      <FeedList items={feedItems} />
+    </section>
   );
 }
