@@ -8,58 +8,63 @@ type FeedListProps = {
 
 export default function FeedList({ items }: FeedListProps) {
   return (
-    <div className="space-y-4">
-      {items.map((item) => {
-        const dateText = new Date(
-          item.publishedAt ?? item.createdAt
-        ).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
+    <div className="feed-list">
+      {items.map((item, index) => {
+      const fallbackDate = item.publishedAt ?? item.createdAt;
+      const dateText = fallbackDate
+        ? new Date(fallbackDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "Unknown date";
 
         return (
-          <div
-            key={item.id}
-            className="flex gap-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm hover:border-zinc-300"
-          >
-            <div className="w-12 text-center">
-              <div className="text-lg font-semibold text-zinc-900">
-                {Math.round(item.score ?? 0)}
-              </div>
-              <div className="text-xs text-zinc-500">score</div>
-            </div>
+          <article key={item.id} className="feed-row">
+            <div className="feed-rank">{index + 1}.</div>
 
-            <div className="min-w-0 flex-1">
+            <div>
               {item.url ? (
                 <a
                   href={item.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-base font-medium text-zinc-900 hover:underline"
+                  className="feed-title"
                 >
                   {item.title}
                 </a>
               ) : (
-                <div className="text-base font-medium text-zinc-900">
-                  {item.title}
-                </div>
+                <div className="feed-title">{item.title}</div>
               )}
 
-              <div className="mt-1 text-sm text-zinc-500">
-                <Link
-                  href={`/labs/${item.lab.slug}`}
-                  className="font-medium text-zinc-600 hover:text-zinc-900 hover:underline"
-                >
+            <div className="feed-meta">
+              {item.lab ? (
+                <Link href={`/labs/${item.lab.slug}`}>
                   {item.lab.name}
                 </Link>
-                {" • "}
-                {item.source?.name ?? item.source?.type ?? "UNKNOWN"}
-                {" • "}
-                {dateText}
-              </div>
+              ) : (
+                <span>Unknown Lab</span>
+              )}
+
+              <span>{item.source?.name ?? "Unknown Source"}</span>
+              <span>{dateText}</span>
             </div>
-          </div>
+
+              {item.tags?.length ? (
+                <div className="feed-tags">
+                  {item.tags.map((tag) => (
+                    <Link
+                      key={tag}
+                      href={`/topics/${tag}`}
+                      className="feed-tag"
+                    >
+                      #{tag}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </article>
         );
       })}
     </div>

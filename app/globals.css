@@ -208,3 +208,46 @@ main {
     width: 100%;
   }
 }
+
+.feed-list {
+  display: grid;
+  gap: 0;
+}
+
+.feed-row {
+  display: grid;
+  grid-template-columns: 3ch 1fr;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.65rem 0;
+}
+
+.feed-rank {
+  text-align: right;
+  color: var(--muted);
+}
+
+.feed-title {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.feed-meta {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.feed-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.feed-tag {
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 0 0.35rem;
+  font-size: 0.78rem;
+}
