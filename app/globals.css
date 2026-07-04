@@ -88,25 +88,32 @@ main {
 /* Site chrome */
 
 .site-header {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 180px 1fr 180px;
   align-items: center;
-  gap: 16px;
+
   border-bottom: 1px solid var(--line);
   padding: 8px 12px;
   background: var(--surface);
 }
 
 .site-title {
+  justify-self: start;
   color: var(--fg);
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .site-nav {
+  justify-self: center;
+
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.theme-toggle {
+  justify-self: end;
 }
 
 /* Utility blocks */
@@ -151,13 +158,18 @@ main {
 }
 
 .feed-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
   border-bottom: 1px solid var(--line);
-  padding-bottom: 0.75rem;
+  padding: 1.5rem 0;
+  text-align: center;
 }
 
 .feed-header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
 }
 
@@ -215,6 +227,14 @@ main {
   font-size: 0.78rem;
 }
 
+.feed-description {
+  max-width: 70ch;
+  margin-top: 0.75rem;
+
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 /* Responsive */
 
 @media (max-width: 640px) {
@@ -225,4 +245,50 @@ main {
   .site-nav {
     width: 100%;
   }
+}
+
+/* filter */
+.feed-filters {
+  display: grid;
+  justify-content: center;
+  gap: 1.5rem;
+
+  margin: 2rem auto;
+  text-align: center;
+}
+
+.filter-group {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+}
+
+.filter-group label {
+  color: var(--muted);
+}
+
+.filter-select {
+  min-width: 220px;
+
+  background: var(--surface);
+  color: var(--fg);
+
+  border: 1px solid var(--line);
+
+  padding: 0.5rem 0.75rem;
+
+  text-align: center;
+  text-align-last: center;
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.filter-actions a,
+.filter-actions button {
+  border: 1px solid var(--line);
+  padding: 0.5rem 1rem;
 }

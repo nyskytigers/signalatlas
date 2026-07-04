@@ -36,9 +36,8 @@ export default async function HomePage({ searchParams }: PageProps) {
     <section className="feed-shell">
       <header className="feed-header">
         <h1>SignalAtlas</h1>
-        <p>
-          Ranked research signals from XR, marine robotics, HCI, and digital
-          twin labs.
+        <p className="feed-description">
+          Ranked research signals from XR, marine robotics, HCI, digital twin, and marine archaeology labs.
         </p>
       </header>
 

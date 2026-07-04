@@ -14,8 +14,7 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-6xl px-4 py-10">
+    <main className="utility-list">
         <header className="feed-header">
           <h1>Control Room</h1>
 
@@ -105,7 +104,9 @@ export default async function AdminPage() {
             ))}
           </div>
         </section>
-
+        
+      <section className="utility-section">
+        <h2>Source Health</h2>
         <div className="utility-list">
           {sources.map((src) => (
             <article key={src.id} className="feed-row">
@@ -148,8 +149,8 @@ export default async function AdminPage() {
               </div>
             </article>
           ))}
-        </div>
-      </div>
+        </div>     
+        </section>
     </main>
   );
 }

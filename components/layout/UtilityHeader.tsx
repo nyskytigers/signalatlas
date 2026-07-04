@@ -16,11 +16,7 @@ export default function UtilityHeader() {
         <Link href="/search">search</Link>
         <Link href="/admin">admin</Link>
       </nav>
-      
-      <p className="utility-muted">
-        marine archaeology • XR • robotics • digital twin intelligence
-      </p>
-
+     
       <div className="ml-auto">
         <ThemeToggle />
       </div>
