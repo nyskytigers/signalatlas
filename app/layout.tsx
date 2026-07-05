@@ -1,6 +1,4 @@
 import "./globals.css";
-import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
 import UtilityHeader from "@/components/layout/UtilityHeader";
 
 export const metadata = {
