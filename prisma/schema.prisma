@@ -140,6 +140,33 @@ model Item {
   @@index([tags])
 }
 
+model Signal {
+  id           String    @id @default(cuid())
+  title        String
+  summary      String?
+  canonicalUrl String    @unique
+  signalType   String
+  sourceId     String?
+  sourceName   String?
+  publishedAt  DateTime?
+
+  technologies  String[] @default([])
+  organizations String[] @default([])
+  researchers   String[] @default([])
+  domains       String[] @default([])
+  keywords      String[] @default([])
+
+  relevanceScore Float?
+  raw            Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([signalType])
+  @@index([publishedAt])
+  @@index([keywords])
+}
+
 model IngestRun {
   id     String    @id @default(cuid())
   type   RunType
