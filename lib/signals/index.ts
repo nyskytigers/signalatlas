@@ -6,3 +6,8 @@ export {
   type SignalType,
 } from "./types";
 export { normalizedItemToSignal, type NormalizedSignalItem } from "./normalize-to-signal";
+export { persistSignal, type SignalPersistenceClient } from "./persist-signal";
+export {
+  buildSignalFromNormalizedItem,
+  ingestNormalizedItemAsSignal,
+} from "./pipeline";
