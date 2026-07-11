@@ -11,3 +11,4 @@ export {
   buildSignalFromNormalizedItem,
   ingestNormalizedItemAsSignal,
 } from "./pipeline";
+export * from "./dedupe";
