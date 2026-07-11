@@ -12,3 +12,4 @@ export {
   ingestNormalizedItemAsSignal,
 } from "./pipeline";
 export * from "./dedupe";
+export * from "./entities";

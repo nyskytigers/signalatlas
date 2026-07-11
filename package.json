@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signals.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-pipeline.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-dedupe.test.ts",
+    "test": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signals.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-pipeline.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-dedupe.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-entities.test.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
