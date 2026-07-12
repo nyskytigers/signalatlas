@@ -4,6 +4,7 @@ import { fetchRssItems } from "./adapters/rss";
 import { isDuplicate } from "./dedupe";
 import { tagItem } from "@/lib/tagging/tagItem";
 import { scoreItem } from "@/lib/scoring/scoreItem";
+import { maybePersistSignalForIngestItem } from "./signalPersistence";
 
 function getErrorMessage(err: unknown) {
   return err instanceof Error ? err.message : String(err);
@@ -116,6 +117,31 @@ export async function runRssIngest(
                 rawJson: it.raw ?? undefined,
               },
             });
+
+            await maybePersistSignalForIngestItem(
+              {
+                ...it,
+                tags,
+              },
+              {
+                client: prisma,
+                onFailure: async (signalError) => {
+                  await prisma.ingestEvent.create({
+                    data: {
+                      runId: run.id,
+                      sourceId: src.id,
+                      level: "ERROR",
+                      message: "RSS Signal persistence failed",
+                      detailJson: {
+                        title: it.title,
+                        url: it.url,
+                        error: getErrorMessage(signalError),
+                      },
+                    },
+                  });
+                },
+              }
+            );
 
             createdCount++;
             inserted++;

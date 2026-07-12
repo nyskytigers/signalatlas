@@ -8,11 +8,13 @@ export type SignalPersistenceClient = {
   };
 };
 
-function jsonValue(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+export function toPrismaJsonValue(
+  value: unknown
+): Prisma.InputJsonValue | typeof Prisma.JsonNull {
   return value == null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
 }
 
-function signalData(signal: SignalInput) {
+export function signalDataForPersistence(signal: SignalInput) {
   return {
     title: signal.title,
     summary: signal.summary,
@@ -27,7 +29,7 @@ function signalData(signal: SignalInput) {
     domains: signal.domains,
     keywords: signal.keywords,
     relevanceScore: signal.relevanceScore,
-    raw: jsonValue(signal.raw),
+    raw: toPrismaJsonValue(signal.raw),
   };
 }
 
@@ -35,7 +37,7 @@ export function persistSignal(
   signal: SignalInput,
   client: SignalPersistenceClient = prisma
 ) {
-  const data = signalData(signal);
+  const data = signalDataForPersistence(signal);
 
   return client.signal.upsert({
     where: { canonicalUrl: signal.canonicalUrl },

@@ -14,3 +14,4 @@ export {
 export * from "./dedupe";
 export * from "./entities";
 export * from "./orchestration";
+export * from "./persistence";
