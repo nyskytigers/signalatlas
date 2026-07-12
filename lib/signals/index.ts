@@ -13,3 +13,4 @@ export {
 } from "./pipeline";
 export * from "./dedupe";
 export * from "./entities";
+export * from "./orchestration";
