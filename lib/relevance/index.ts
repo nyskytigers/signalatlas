@@ -4,6 +4,7 @@ export {
 } from "./calculator";
 export { scoreToBand } from "./bands";
 export { extractRelevanceFeatures, type RelevanceFeatures } from "./features";
+export { RELEVANCE_DIMENSIONS } from "./types";
 export {
   DEFAULT_RELEVANCE_WEIGHTS,
   relevanceWeightsFor,

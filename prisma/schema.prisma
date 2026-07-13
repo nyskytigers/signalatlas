@@ -159,6 +159,8 @@ model Signal {
   relevanceScore Float?
   raw            Json?
 
+  relevanceAssessments SignalRelevanceAssessment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -210,4 +212,42 @@ model IngestEvent {
 
   @@index([runId])
   @@index([sourceId])
+}
+
+model SignalRelevanceAssessment {
+  id              String @id @default(cuid())
+  signalId        String
+  assessmentType  String
+  provider        String
+  model           String
+  providerVersion String
+  promptVersion   String
+  scoringVersion  String
+
+  dimensionsJson            Json
+  domainsJson               Json
+  technologiesJson          Json
+  explanation               String?
+  dimensionExplanationsJson Json?
+  warningsJson              Json?
+
+  providerConfidence   Float?
+  normalizedConfidence Float?
+  finalScore           Int?
+  band                 String?
+
+  rawResponseJson     Json?
+  requestMetadataJson Json?
+
+  status       String
+  errorCode    String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([signalId, createdAt])
+  @@index([provider, model])
+  @@index([status])
 }

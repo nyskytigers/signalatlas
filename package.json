@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signals.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-pipeline.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-dedupe.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-entities.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-orchestration.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-persistence-integration.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/relevance.test.ts",
+    "test": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signals.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-pipeline.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-dedupe.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-entities.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-orchestration.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-persistence-integration.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/relevance.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/ai-relevance.test.ts",
+    "relevance:nvidia": "ts-node --project tsconfig.scripts.json scripts/relevance-nvidia.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
