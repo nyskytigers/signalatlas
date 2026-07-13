@@ -160,6 +160,7 @@ model Signal {
   raw            Json?
 
   relevanceAssessments SignalRelevanceAssessment[]
+  embeddings            SignalEmbedding[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -249,5 +250,32 @@ model SignalRelevanceAssessment {
 
   @@index([signalId, createdAt])
   @@index([provider, model])
+  @@index([status])
+}
+
+model SignalEmbedding {
+  id               String                 @id @default(cuid())
+  signalId         String
+  provider         String
+  model            String
+  providerVersion  String
+  embeddingVersion String
+  inputVersion     String
+  dimensions       Int
+  contentHash      String
+  sourceTextHash   String
+  status           String
+  errorCode        String?
+  errorMessage     String?
+  metadataJson     Json?
+  embedding        Unsupported("vector(1024)")?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@unique([signalId, provider, model, embeddingVersion])
+  @@index([signalId])
+  @@index([provider, model, embeddingVersion])
   @@index([status])
 }
