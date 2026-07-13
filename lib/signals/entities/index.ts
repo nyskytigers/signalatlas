@@ -14,7 +14,13 @@ export {
   prepareSignalText,
   type SearchableTextChunk,
 } from "./text";
-export { extractTechnologyEntities } from "./technology-extractor";
+export {
+  CANONICAL_TECHNOLOGIES,
+  TECHNOLOGY_DICTIONARY,
+  extractTechnologyEntities,
+  resolveTechnologyNames,
+  type Technology,
+} from "./technology-extractor";
 export { extractOrganizationEntities } from "./organization-extractor";
 export { extractVesselEntities } from "./vessel-extractor";
 export { extractProjectEntities } from "./project-extractor";
