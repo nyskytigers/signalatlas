@@ -117,6 +117,27 @@ export type HybridSignalSearchResult = {
   embeddingVersion?: string;
 };
 
+export type RerankedSignalSearchResult = HybridSignalSearchResult & {
+  originalRank: number;
+  rerankedRank: number;
+  rerankScore: number | null;
+  reranked: boolean;
+};
+
+export type RerankedSignalSearchResponse = {
+  results: readonly RerankedSignalSearchResult[];
+  retrievalLatencyMs: number;
+  candidatePreparationLatencyMs: number;
+  rerankingLatencyMs: number;
+  totalLatencyMs: number;
+  rerankingStatus: "success" | "failed" | "disabled" | "skipped";
+  fallbackUsed: boolean;
+  candidatesRetrieved: number;
+  provider?: string;
+  model?: string;
+  errorCode?: string;
+};
+
 export type EmbeddingRepository = {
   findSignal(signalId: string): Promise<SignalEmbeddingSource | null>;
   findSignals(args: {

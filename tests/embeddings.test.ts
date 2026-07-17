@@ -12,6 +12,7 @@ import {
   NVIDIA_EMBEDDING_PROFILE,
   searchSignalsByEmbedding,
   searchSignalsHybrid,
+  searchSignalsHybridReranked,
   validateEmbeddingResults,
   validateEmbeddingVector,
   EmbeddingConfigurationError,
@@ -23,6 +24,16 @@ import {
   type SignalEmbeddingRecord,
   type SignalEmbeddingSource,
 } from "../lib/ai/embeddings";
+import {
+  createNvidiaRerankingProvider,
+  getNvidiaRerankingConfig,
+  NVIDIA_RERANKING_LIMITS,
+  NVIDIA_RERANKING_PROFILE,
+  RerankingConfigurationError,
+  RerankingProviderDisabledError,
+  RerankingValidationError,
+  type RerankingProvider,
+} from "../lib/ai/reranking";
 
 type TestFn = () => void | Promise<void>;
 const tests: Array<{ name: string; fn: TestFn }> = [];
@@ -70,6 +81,8 @@ function mockRepository(options: {
   existing?: SignalEmbeddingRecord | null;
   signals?: readonly SignalEmbeddingSource[];
   failSearch?: boolean;
+  emptySearch?: boolean;
+  failKeyword?: boolean;
 } = {}) {
   const calls = {
     upsertSuccess: 0,
@@ -140,7 +153,7 @@ function mockRepository(options: {
     },
     async searchByVector(args) {
       calls.searchVector = [...calls.searchVector, [...args.vector]];
-      if (options.failSearch) return [];
+      if (options.failSearch || options.emptySearch) return [];
       return [
         {
           signalId: "sig_nearest",
@@ -165,6 +178,8 @@ function mockRepository(options: {
       ].slice(0, args.limit);
     },
     async searchKeyword() {
+      if (options.failKeyword) throw new Error("Keyword retrieval failed.");
+      if (options.emptySearch) return [];
       return [
         {
           signalId: "sig_keyword",
@@ -270,6 +285,54 @@ test("provider config is disabled by default and validates enabled settings", ()
   );
 });
 
+test("reranking config is disabled by default and validates enabled settings", () => {
+  const disabled = getNvidiaRerankingConfig({});
+  assert.equal(disabled.enabled, false);
+  assert.equal(disabled.model, NVIDIA_RERANKING_PROFILE.model);
+  assert.equal(disabled.baseUrl, NVIDIA_RERANKING_PROFILE.endpointBaseUrl);
+  assert.throws(
+    () => getNvidiaRerankingConfig({ NVIDIA_RERANKING_ENABLED: "true" }),
+    RerankingConfigurationError
+  );
+  assert.throws(
+    () =>
+      getNvidiaRerankingConfig({
+        NVIDIA_RERANKING_MODEL: "another-model",
+      }),
+    RerankingConfigurationError
+  );
+  assert.throws(
+    () => getNvidiaRerankingConfig({ NVIDIA_RERANKING_CANDIDATE_LIMIT: "31" }),
+    RerankingConfigurationError
+  );
+  assert.throws(
+    () => getNvidiaRerankingConfig({ NVIDIA_RERANKING_TIMEOUT_MS: "99" }),
+    RerankingConfigurationError
+  );
+  assert.throws(
+    () =>
+      getNvidiaRerankingConfig({
+        NVIDIA_RERANKING_TIMEOUT_MS: String(NVIDIA_RERANKING_LIMITS.maxTimeoutMs + 1),
+      }),
+    RerankingConfigurationError
+  );
+  assert.throws(
+    () => getNvidiaRerankingConfig({ NVIDIA_RERANKING_MAX_RETRIES: "6" }),
+    RerankingConfigurationError
+  );
+  assert.equal(
+    getNvidiaRerankingConfig({
+      NVIDIA_RERANKING_ENABLED: "true",
+      NVIDIA_RERANKING_API_KEY: "key",
+      NVIDIA_RERANKING_MODEL: NVIDIA_RERANKING_PROFILE.model,
+      NVIDIA_RERANKING_MAX_RETRIES: "0",
+      NVIDIA_RERANKING_CANDIDATE_LIMIT: "4",
+      NVIDIA_RERANKING_RESULT_LIMIT: "2",
+    }).candidateLimit,
+    4
+  );
+});
+
 test("vector validation rejects invalid vectors and result count mismatch", () => {
   assert.deepEqual(validateEmbeddingVector([1, 0, 0], 3), [1, 0, 0]);
   assert.throws(() => validateEmbeddingVector([], 3), EmbeddingValidationError);
@@ -352,6 +415,180 @@ test("NVIDIA embedding provider rejects a mismatched response model", async () =
     () => provider.embed(["query"], { inputType: "query" }),
     EmbeddingValidationError
   );
+});
+
+test("NVIDIA reranking provider succeeds, sends hosted request shape, and avoids disabled calls", async () => {
+  await assert.rejects(
+    () =>
+      createNvidiaRerankingProvider({}).rerank({
+        query: "shipwreck mapping",
+        candidates: [{ id: "sig_1", text: "mapping", originalRank: 1 }],
+        topN: 1,
+      }),
+    RerankingProviderDisabledError
+  );
+
+  let requestUrl = "";
+  let requestBody: Record<string, unknown> | null = null;
+  const provider = createNvidiaRerankingProvider(
+    {
+      NVIDIA_RERANKING_ENABLED: "true",
+      NVIDIA_RERANKING_API_KEY: "key",
+      NVIDIA_RERANKING_MODEL: NVIDIA_RERANKING_PROFILE.model,
+      NVIDIA_RERANKING_CANDIDATE_LIMIT: "4",
+      NVIDIA_RERANKING_RESULT_LIMIT: "2",
+      NVIDIA_RERANKING_MAX_RETRIES: "0",
+    },
+    {
+      fetch: async (url, init) => {
+        requestUrl = url;
+        requestBody = JSON.parse(init.body) as Record<string, unknown>;
+        return new Response(
+          JSON.stringify({
+            rankings: [
+              { index: 1, logit: 2.5 },
+              { index: 0, logit: -1.25 },
+            ],
+          }),
+          { status: 200 }
+        );
+      },
+    }
+  );
+  const result = await provider.rerank({
+    query: "shipwreck mapping",
+    candidates: [
+      { id: "sig_a", text: "bakery notes", originalRank: 1 },
+      { id: "sig_b", text: "underwater mapping", originalRank: 2 },
+    ],
+    topN: 1,
+  });
+
+  assert.equal(requestUrl, `${NVIDIA_RERANKING_PROFILE.endpointBaseUrl}/retrieval/${NVIDIA_RERANKING_PROFILE.model}/reranking`);
+  const body = requestBody as unknown as {
+    model: string;
+    query: { text: string };
+    passages: Array<{ text: string }>;
+    truncate: string;
+  };
+  assert.equal(body.model, NVIDIA_RERANKING_PROFILE.model);
+  assert.equal(body.query.text, "shipwreck mapping");
+  assert.equal(body.passages.length, 2);
+  assert.equal(body.truncate, NVIDIA_RERANKING_PROFILE.truncate);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].id, "sig_b");
+  assert.equal(result[0].originalRank, 2);
+  assert.equal(result[0].rerankedRank, 1);
+  assert.equal(result[0].rerankScore, 2.5);
+});
+
+test("NVIDIA reranking provider rejects invalid response indices", async () => {
+  const provider = createNvidiaRerankingProvider(
+    {
+      NVIDIA_RERANKING_ENABLED: "true",
+      NVIDIA_RERANKING_API_KEY: "key",
+      NVIDIA_RERANKING_MAX_RETRIES: "0",
+    },
+    {
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            rankings: [
+              { index: 0, logit: 1 },
+              { index: 0, logit: 0.5 },
+            ],
+          }),
+          { status: 200 }
+        ),
+    }
+  );
+
+  await assert.rejects(
+    () =>
+      provider.rerank({
+        query: "shipwreck",
+        candidates: [
+          { id: "sig_a", text: "shipwreck", originalRank: 1 },
+          { id: "sig_b", text: "pastry", originalRank: 2 },
+        ],
+        topN: 2,
+      }),
+    RerankingValidationError
+  );
+});
+
+test("NVIDIA reranking provider orders ties deterministically and rejects negative indices", async () => {
+  const provider = createNvidiaRerankingProvider(
+    {
+      NVIDIA_RERANKING_ENABLED: "true",
+      NVIDIA_RERANKING_API_KEY: "key",
+      NVIDIA_RERANKING_MAX_RETRIES: "0",
+    },
+    {
+      fetch: async () =>
+        new Response(
+          JSON.stringify({ rankings: [{ index: 1, logit: 2 }, { index: 0, logit: 2 }] }),
+          { status: 200 }
+        ),
+    }
+  );
+  const ordered = await provider.rerank({
+    query: "shipwreck",
+    candidates: [
+      { id: "sig_a", text: "first", originalRank: 1 },
+      { id: "sig_b", text: "second", originalRank: 2 },
+    ],
+    topN: 2,
+  });
+  assert.deepEqual(ordered.map((result) => result.id), ["sig_a", "sig_b"]);
+
+  const invalidProvider = createNvidiaRerankingProvider(
+    {
+      NVIDIA_RERANKING_ENABLED: "true",
+      NVIDIA_RERANKING_API_KEY: "key",
+      NVIDIA_RERANKING_MAX_RETRIES: "0",
+    },
+    {
+      fetch: async () =>
+        new Response(JSON.stringify({ rankings: [{ index: -1, logit: 2 }] }), { status: 200 }),
+    }
+  );
+  await assert.rejects(
+    () =>
+      invalidProvider.rerank({
+        query: "shipwreck",
+        candidates: [{ id: "sig_a", text: "first", originalRank: 1 }],
+        topN: 1,
+      }),
+    RerankingValidationError
+  );
+});
+
+test("NVIDIA reranking provider rejects malformed JSON without retrying", async () => {
+  let requests = 0;
+  const provider = createNvidiaRerankingProvider(
+    {
+      NVIDIA_RERANKING_ENABLED: "true",
+      NVIDIA_RERANKING_API_KEY: "key",
+      NVIDIA_RERANKING_MAX_RETRIES: "2",
+    },
+    {
+      fetch: async () => {
+        requests += 1;
+        return new Response("not-json", { status: 200 });
+      },
+    }
+  );
+  await assert.rejects(
+    () =>
+      provider.rerank({
+        query: "shipwreck",
+        candidates: [{ id: "sig_a", text: "first", originalRank: 1 }],
+        topN: 1,
+      }),
+    RerankingValidationError
+  );
+  assert.equal(requests, 1);
 });
 
 test("embedding service stores new, skips unchanged, force refreshes, and stores failure", async () => {
@@ -583,6 +820,242 @@ test("hybrid retrieval merges overlaps and applies exact formula", async () => {
   assert.deepEqual(overlap.matchedBy, ["semantic", "keyword"]);
   assert.equal(overlap.hybridScore, overlap.semanticScore * 0.65 + overlap.keywordScore * 0.35);
   assert.equal(keywordOnly.matchedBy[0], "keyword");
+});
+
+test("reranked hybrid search preserves original order when reranking is disabled", async () => {
+  const { repository } = mockRepository();
+  const response = await searchSignalsHybridReranked({
+    query: "shipwreck keyword",
+    limit: 2,
+    embeddingProvider: mockProvider(),
+    rerankingProvider: createNvidiaRerankingProvider({}),
+    repository,
+  });
+
+  assert.equal(response.rerankingStatus, "disabled");
+  assert.equal(response.candidatesRetrieved, 3);
+  assert.equal(response.results.length, 2);
+  assert.deepEqual(
+    response.results.map((result) => result.originalRank),
+    [1, 2]
+  );
+  assert.deepEqual(
+    response.results.map((result) => result.rerankedRank),
+    [1, 2]
+  );
+  assert.equal(response.results.every((result) => result.reranked === false), true);
+  assert.ok(Number.isFinite(response.retrievalLatencyMs));
+  assert.ok(Number.isFinite(response.rerankingLatencyMs));
+});
+
+test("reranked hybrid search returns top reranked results and keeps original ranks", async () => {
+  const { repository } = mockRepository();
+  const seenCandidates: string[] = [];
+  const rerankingProvider: RerankingProvider = {
+    provider: "mock-rerank",
+    model: "mock-rerank-model",
+    version: "1.0.0",
+    maxCandidates: 30,
+    maxResults: 10,
+    async rerank(input) {
+      seenCandidates.push(...input.candidates.map((candidate) => candidate.text));
+      return [
+        {
+          id: "sig_keyword",
+          originalRank: 2,
+          rerankedRank: 1,
+          rerankScore: 3,
+        },
+        {
+          id: "sig_nearest",
+          originalRank: 1,
+          rerankedRank: 2,
+          rerankScore: 1,
+        },
+      ];
+    },
+  };
+
+  const response = await searchSignalsHybridReranked({
+    query: "shipwreck keyword",
+    limit: 2,
+    embeddingProvider: mockProvider(),
+    rerankingProvider,
+    repository,
+  });
+
+  assert.equal(response.rerankingStatus, "success");
+  assert.deepEqual(
+    response.results.map((result) => result.signal.id),
+    ["sig_keyword", "sig_nearest"]
+  );
+  assert.deepEqual(
+    response.results.map((result) => result.originalRank),
+    [2, 1]
+  );
+  assert.deepEqual(
+    response.results.map((result) => result.rerankedRank),
+    [1, 2]
+  );
+  assert.equal(response.results[0].rerankScore, 3);
+  assert.equal(response.results.every((result) => result.reranked === true), true);
+  assert.ok(seenCandidates.some((text) => text.includes("Title:")));
+  assert.ok(Number.isFinite(response.rerankingLatencyMs));
+  assert.ok(Number.isFinite(response.candidatePreparationLatencyMs));
+  assert.ok(Number.isFinite(response.totalLatencyMs));
+});
+
+test("reranked search uses provider limits and falls back on partial provider results", async () => {
+  const { repository } = mockRepository();
+  let candidateCount = 0;
+  const partialProvider: RerankingProvider = {
+    provider: "mock-rerank",
+    model: "mock-rerank-model",
+    version: "1.0.0",
+    maxCandidates: 2,
+    maxResults: 1,
+    async rerank(input) {
+      candidateCount = input.candidates.length;
+      return [
+        {
+          id: input.candidates[0].id,
+          originalRank: input.candidates[0].originalRank,
+          rerankedRank: 1,
+          rerankScore: 1,
+        },
+      ];
+    },
+  };
+  const limited = await searchSignalsHybridReranked({
+    query: "shipwreck keyword",
+    limit: 50,
+    embeddingProvider: mockProvider(),
+    rerankingProvider: partialProvider,
+    repository,
+  });
+  assert.equal(candidateCount, 2);
+  assert.equal(limited.results.length, 1);
+
+  const fallbackProvider: RerankingProvider = {
+    ...partialProvider,
+    maxResults: 2,
+  };
+  const fallback = await searchSignalsHybridReranked({
+    query: "shipwreck keyword",
+    limit: 2,
+    embeddingProvider: mockProvider(),
+    rerankingProvider: fallbackProvider,
+    repository,
+  });
+  assert.equal(fallback.rerankingStatus, "failed");
+  assert.equal(fallback.fallbackUsed, true);
+  assert.deepEqual(fallback.results.map((result) => result.originalRank), [1, 2]);
+  assert.equal(fallback.results.every((result) => result.rerankScore === null), true);
+});
+
+test("reranked search keeps unsafe persisted content out of candidate passages", async () => {
+  const sourceSignals = [
+    signal({
+      id: "sig_nearest",
+      summary: '<b>Shipwreck</b> api_key=do-not-send https://example.com/?token=do-not-send',
+      organizations: ['{"raw":"payload"}'],
+    }),
+    signal({ id: "sig_second" }),
+    signal({ id: "sig_keyword" }),
+  ];
+  const { repository } = mockRepository({ signals: sourceSignals });
+  const passages: string[] = [];
+  const rerankingProvider: RerankingProvider = {
+    provider: "mock-rerank",
+    model: "mock-rerank-model",
+    version: "1.0.0",
+    maxCandidates: 30,
+    maxResults: 2,
+    async rerank(input) {
+      passages.push(...input.candidates.map((candidate) => candidate.text));
+      return input.candidates.slice(0, input.topN).map((candidate, index) => ({
+        id: candidate.id,
+        originalRank: candidate.originalRank,
+        rerankedRank: index + 1,
+        rerankScore: input.topN - index,
+      }));
+    },
+  };
+  await searchSignalsHybridReranked({
+    query: "shipwreck",
+    limit: 2,
+    embeddingProvider: mockProvider(),
+    rerankingProvider,
+    repository,
+  });
+  const submitted = passages.join("\n");
+  assert.equal(submitted.includes("<b>"), false);
+  assert.equal(submitted.includes("do-not-send"), false);
+  assert.equal(submitted.includes('"raw"'), false);
+});
+
+test("reranked search skips the provider for empty retrieval and propagates retrieval errors", async () => {
+  let calls = 0;
+  const rerankingProvider: RerankingProvider = {
+    provider: "mock-rerank",
+    model: "mock-rerank-model",
+    version: "1.0.0",
+    maxCandidates: 30,
+    maxResults: 10,
+    async rerank() {
+      calls += 1;
+      return [];
+    },
+  };
+  const empty = await searchSignalsHybridReranked({
+    query: "shipwreck",
+    embeddingProvider: mockProvider(),
+    rerankingProvider,
+    repository: mockRepository({ emptySearch: true }).repository,
+  });
+  assert.equal(empty.rerankingStatus, "skipped");
+  assert.equal(empty.fallbackUsed, false);
+  assert.equal(calls, 0);
+
+  await assert.rejects(() =>
+    searchSignalsHybridReranked({
+      query: "shipwreck",
+      embeddingProvider: mockProvider(),
+      rerankingProvider,
+      repository: mockRepository({ failKeyword: true }).repository,
+    })
+  );
+});
+
+test("reranked search safely falls back when enabled NVIDIA reranking has no API key", async () => {
+  const original = {
+    enabled: process.env.NVIDIA_RERANKING_ENABLED,
+    rerankingKey: process.env.NVIDIA_RERANKING_API_KEY,
+    sharedKey: process.env.NVIDIA_API_KEY,
+  };
+  try {
+    process.env.NVIDIA_RERANKING_ENABLED = "true";
+    delete process.env.NVIDIA_RERANKING_API_KEY;
+    delete process.env.NVIDIA_API_KEY;
+    const response = await searchSignalsHybridReranked({
+      query: "shipwreck",
+      limit: 2,
+      embeddingProvider: mockProvider(),
+      repository: mockRepository().repository,
+    });
+    assert.equal(response.rerankingStatus, "failed");
+    assert.equal(response.fallbackUsed, true);
+    assert.equal(response.errorCode, "configuration_error");
+    assert.equal(response.results.length, 2);
+    assert.equal(response.results.every((result) => result.rerankScore === null), true);
+  } finally {
+    if (original.enabled == null) delete process.env.NVIDIA_RERANKING_ENABLED;
+    else process.env.NVIDIA_RERANKING_ENABLED = original.enabled;
+    if (original.rerankingKey == null) delete process.env.NVIDIA_RERANKING_API_KEY;
+    else process.env.NVIDIA_RERANKING_API_KEY = original.rerankingKey;
+    if (original.sharedKey == null) delete process.env.NVIDIA_API_KEY;
+    else process.env.NVIDIA_API_KEY = original.sharedKey;
+  }
 });
 
 test("hybrid weights validate", async () => {

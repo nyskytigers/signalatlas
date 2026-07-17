@@ -20,6 +20,7 @@ export {
 export { createPrismaEmbeddingRepository } from "./repository";
 export { SEMANTIC_SEARCH_LIMITS, searchSignalsByEmbedding } from "./search";
 export { HYBRID_SEARCH_DEFAULTS, searchSignalsHybrid } from "./hybrid";
+export { RERANKED_SEARCH_LIMITS, searchSignalsHybridReranked } from "./reranked";
 export {
   NVIDIA_EMBEDDING_PROVIDER_VERSION,
   createNvidiaEmbeddingProvider,
@@ -44,6 +45,8 @@ export type {
   EmbeddingStatus,
   EmbeddingVersionMetadata,
   HybridSignalSearchResult,
+  RerankedSignalSearchResponse,
+  RerankedSignalSearchResult,
   SemanticSearchFilters,
   SemanticSignalSearchResult,
   SignalEmbeddingRecord,

@@ -3,20 +3,21 @@ import { prisma } from "../db/prisma";
 import {
   searchSignalsByEmbedding,
   searchSignalsHybrid,
+  searchSignalsHybridReranked,
   type SemanticSearchFilters,
 } from "../lib/ai/embeddings";
 
 type Args = {
   query: string | null;
   limit: number;
-  mode: "semantic" | "hybrid";
+  mode: "semantic" | "hybrid" | "reranked";
   filters: SemanticSearchFilters;
 };
 
 function parseArgs(argv: readonly string[]): Args {
   let query: string | null = null;
   let limit = 10;
-  let mode: "semantic" | "hybrid" = "semantic";
+  let mode: "semantic" | "hybrid" | "reranked" = "semantic";
   const filters: SemanticSearchFilters = {};
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -30,7 +31,7 @@ function parseArgs(argv: readonly string[]): Args {
       index += 1;
     } else if (arg === "--mode") {
       const value = argv[index + 1];
-      if (value === "semantic" || value === "hybrid") mode = value;
+      if (value === "semantic" || value === "hybrid" || value === "reranked") mode = value;
       index += 1;
     } else if (arg === "--domain") {
       filters.domain = argv[index + 1];
@@ -55,7 +56,7 @@ function parseArgs(argv: readonly string[]): Args {
 
 function printUsage() {
   console.log(
-    'Usage: npm run signals:semantic-search -- --query "underwater SLAM using NeRF" [--limit 10] [--mode semantic|hybrid]'
+    'Usage: npm run signals:semantic-search -- --query "underwater SLAM using NeRF" [--limit 10] [--mode semantic|hybrid|reranked]'
   );
 }
 
@@ -67,8 +68,18 @@ async function main() {
     return;
   }
 
+  const response =
+    args.mode === "reranked"
+      ? await searchSignalsHybridReranked({
+          query: args.query,
+          limit: args.limit,
+          filters: args.filters,
+        })
+      : null;
+
   const results =
-    args.mode === "hybrid"
+    response?.results ??
+    (args.mode === "hybrid"
       ? await searchSignalsHybrid({
           query: args.query,
           limit: args.limit,
@@ -78,18 +89,21 @@ async function main() {
           query: args.query,
           limit: args.limit,
           filters: args.filters,
-        });
+        }));
 
   const output = results.map((result, index) =>
     "signal" in result
       ? {
           rank: index + 1,
+          originalRank: "originalRank" in result ? result.originalRank : undefined,
           title: result.signal.title,
           signalId: result.signal.id,
           url: result.signal.url,
           semanticScore: result.semanticScore,
           keywordScore: result.keywordScore,
           hybridScore: result.hybridScore,
+          rerankScore: "rerankScore" in result ? result.rerankScore : undefined,
+          reranked: "reranked" in result ? result.reranked : undefined,
           matchedBy: result.matchedBy,
           model: result.model,
           embeddingVersion: result.embeddingVersion,
@@ -105,7 +119,25 @@ async function main() {
         }
   );
 
-  console.log(JSON.stringify({ query: args.query, mode: args.mode, results: output }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        query: args.query,
+        mode: args.mode,
+        retrievalLatencyMs: response?.retrievalLatencyMs,
+        candidatePreparationLatencyMs: response?.candidatePreparationLatencyMs,
+        rerankingLatencyMs: response?.rerankingLatencyMs,
+        totalLatencyMs: response?.totalLatencyMs,
+        rerankingStatus: response?.rerankingStatus,
+        fallbackUsed: response?.fallbackUsed,
+        candidatesRetrieved: response?.candidatesRetrieved,
+        rerankingModel: response?.model,
+        results: output,
+      },
+      null,
+      2
+    )
+  );
 }
 
 main()

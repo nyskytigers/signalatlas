@@ -1,6 +1,6 @@
 # Semantic Search
 
-Milestone 4.3 adds versioned embeddings and retrieval-only semantic search for Signals. It does not add generated answers, chat, reranking, GPT evaluation, or automatic API spending.
+Milestone 4.3 adds versioned embeddings and retrieval-only semantic search for Signals. Milestone 4.4 adds opt-in NVIDIA reranking on top of the existing retrieval layer. These milestones do not add generated answers, chat, GPT evaluation, or automatic API spending.
 
 ## Architecture
 
@@ -12,6 +12,13 @@ Code lives in `lib/ai/embeddings`.
 - `service.ts` embeds Signals and supports backfill/incremental helpers.
 - `search.ts` runs semantic vector retrieval.
 - `hybrid.ts` combines semantic and keyword retrieval.
+- `reranked.ts` retrieves hybrid candidates and optionally reranks them.
+
+Provider-neutral reranking code lives in `lib/ai/reranking`.
+
+- `types.ts` defines candidates, results, request options, and provider contracts.
+- `providers/nvidia.ts` implements the first reranking provider.
+- `service.ts` validates and calls a configured reranking provider.
 
 ## pgvector Setup
 
@@ -55,9 +62,20 @@ NVIDIA_EMBEDDING_DIMENSIONS=1024
 NVIDIA_EMBEDDING_TIMEOUT_MS=30000
 NVIDIA_EMBEDDING_MAX_RETRIES=2
 NVIDIA_EMBEDDING_BATCH_SIZE=16
+
+NVIDIA_RERANKING_ENABLED=false
+NVIDIA_RERANKING_API_KEY=
+NVIDIA_RERANKING_MODEL=nvidia/llama-nemotron-rerank-1b-v2
+NVIDIA_RERANKING_BASE_URL=https://ai.api.nvidia.com/v1
+NVIDIA_RERANKING_TIMEOUT_MS=30000
+NVIDIA_RERANKING_MAX_RETRIES=2
+NVIDIA_RERANKING_CANDIDATE_LIMIT=30
+NVIDIA_RERANKING_RESULT_LIMIT=10
 ```
 
 `NVIDIA_API_KEY` is used as a fallback only when `NVIDIA_EMBEDDING_API_KEY` is empty. Model and dimension environment values are checked against the authoritative runtime profile so application validation cannot drift from the pending migration.
+
+`NVIDIA_API_KEY` is also used as a fallback only when `NVIDIA_RERANKING_API_KEY` is empty. Reranking remains disabled unless `NVIDIA_RERANKING_ENABLED=true`.
 
 ## Embedding Input Format
 
@@ -132,15 +150,38 @@ hybridScore = semanticScore * 0.65 + keywordScore * 0.35
 
 Custom weights must be finite, non-negative, and total 1 within tolerance. Component scores and match sources are returned.
 
+## Reranking
+
+`searchSignalsHybridReranked` retrieves up to 30 candidates with the existing hybrid flow, builds bounded candidate passage text from persisted Signal fields, sends those candidates to the configured reranking provider, and returns up to 10 results.
+
+Milestone 4.4 uses one runtime reranking profile:
+
+```text
+provider: nvidia
+model: nvidia/llama-nemotron-rerank-1b-v2
+hosted endpoint: https://ai.api.nvidia.com/v1/retrieval/nvidia/llama-nemotron-rerank-1b-v2/reranking
+query field: query.text
+passages field: passages[].text
+maximum candidate passages: 1000 API maximum, 30 application maximum
+maximum input: 8192 tokens per query/passage pair
+truncation: END
+score type: logit
+```
+
+NVIDIA returns ranked objects with candidate `index` and raw `logit` score. Indices map back to the original candidate order. Results are sorted descending by logit by the provider; application validation checks indices, scores, duplicates, and bounds before replacing the retrieval order.
+
+If reranking is disabled, times out, is rate-limited, returns an invalid response, or returns fewer results than requested, the search response falls back entirely to the original hybrid retrieval order and reports `rerankingStatus`, `fallbackUsed`, and a sanitized error code. Retrieval, candidate preparation, reranking, and total latency are included. Raw provider payloads, passage payloads, API keys, and vectors are not logged by the provider or command.
+
 ## Search Command
 
 ```bash
 npm run signals:semantic-search -- --query "underwater SLAM using NeRF"
 npm run signals:semantic-search -- --query "XR shipwreck documentation" --mode hybrid --limit 10
+npm run signals:semantic-search -- --query "XR shipwreck documentation" --mode reranked --limit 10
 npm run signals:semantic-search -- --query "underwater SLAM" --type PAPER --technology SLAM
 ```
 
-Output includes rank, title, scores, Signal ID, URL, model, and embedding version. Raw vectors are never printed.
+Output includes rank, title, scores, Signal ID, URL, model, and embedding version. Reranked mode also includes retrieval, candidate preparation, reranking, and total latency; reranking status; fallback status; candidate count; original rank; and rerank score when available. Raw vectors and raw provider payloads are never printed.
 
 ## Migration Safety
 
@@ -157,9 +198,10 @@ Because migration history cannot replay cleanly into a shadow database, this mil
 - No build-time calls.
 - No client-side calls.
 - No raw vector display.
+- No raw reranking payload display.
 - No automatic ingest integration.
 - No generated answers.
 
 ## Exclusions
 
-This milestone excludes generated answers, RAG, chat, NVIDIA reranking, GPT comparison, automatic summaries, and public conversational search.
+These milestones exclude generated answers, RAG, chat, GPT comparison, automatic summaries, and public conversational search.
