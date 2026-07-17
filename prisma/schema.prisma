@@ -159,6 +159,9 @@ model Signal {
   relevanceScore Float?
   raw            Json?
 
+  relevanceAssessments SignalRelevanceAssessment[]
+  embeddings            SignalEmbedding[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -210,4 +213,69 @@ model IngestEvent {
 
   @@index([runId])
   @@index([sourceId])
+}
+
+model SignalRelevanceAssessment {
+  id              String @id @default(cuid())
+  signalId        String
+  assessmentType  String
+  provider        String
+  model           String
+  providerVersion String
+  promptVersion   String
+  scoringVersion  String
+
+  dimensionsJson            Json
+  domainsJson               Json
+  technologiesJson          Json
+  explanation               String?
+  dimensionExplanationsJson Json?
+  warningsJson              Json?
+
+  providerConfidence   Float?
+  normalizedConfidence Float?
+  finalScore           Int?
+  band                 String?
+
+  rawResponseJson     Json?
+  requestMetadataJson Json?
+
+  status       String
+  errorCode    String?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([signalId, createdAt])
+  @@index([provider, model])
+  @@index([status])
+}
+
+model SignalEmbedding {
+  id               String                 @id @default(cuid())
+  signalId         String
+  provider         String
+  model            String
+  providerVersion  String
+  embeddingVersion String
+  inputVersion     String
+  dimensions       Int
+  contentHash      String
+  sourceTextHash   String
+  status           String
+  errorCode        String?
+  errorMessage     String?
+  metadataJson     Json?
+  embedding        Unsupported("vector(1024)")?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@unique([signalId, provider, model, embeddingVersion])
+  @@index([signalId])
+  @@index([provider, model, embeddingVersion])
+  @@index([status])
 }

@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signals.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-pipeline.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-dedupe.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-entities.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-orchestration.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-persistence-integration.test.ts",
+    "test": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signals.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-pipeline.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-dedupe.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-entities.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-orchestration.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/signal-persistence-integration.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/relevance.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/ai-relevance.test.ts && ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" tests/embeddings.test.ts",
+    "relevance:nvidia": "ts-node --project tsconfig.scripts.json scripts/relevance-nvidia.ts",
+    "embeddings:backfill": "ts-node --project tsconfig.scripts.json scripts/embeddings-backfill.ts",
+    "signals:semantic-search": "ts-node --project tsconfig.scripts.json scripts/signals-semantic-search.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
